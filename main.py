@@ -170,14 +170,16 @@ def explosion(x, y):
     screen.blit(explosionImage, (x, y))
 
 
+start_time = time.time()
 # Timer for spawning new asteroids
 time_limit = 4
-start_time = time.time()
-print(start_time)
 missile_init(missile_count)
 
 # Update player lives
 update_player_lives(heart_count)
+
+# Ammo Timer
+ammo_time_limit = 15
 
 
 running = True
@@ -215,14 +217,20 @@ while running:
             heart(heartX[i], heartY[i], i)
         # if heart_state not ready (collision with asteroid) then dont display
 
-    ammoY += ammoY_change
+    elapsed_time = time.time() - start_time
+
+    if elapsed_time > ammo_time_limit:
+        ammo_time_limit += 15
+        ammo_state = "ready"
+    if ammo_state == "ready":
+        ammoY += ammoY_change
+        ammo(ammoX, ammoY)
     if ammoY > 800:
         ammoY = -40
         ammoX = random.randint(0, 968)
-    ammo(ammoX, ammoY)
+        ammo_state = "waiting"
 
     # Timer for spawning new asteroids
-    elapsed_time = time.time() - start_time
     print(time_limit - int(elapsed_time))
 
     # Asteroids
