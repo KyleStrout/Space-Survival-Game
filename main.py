@@ -4,6 +4,7 @@ import pygame.image
 import random
 import time
 import pygame.font
+import math
 
 pygame.init()
 
@@ -35,12 +36,14 @@ asteroidImage = []
 asteroidX = []
 asteroidY = []
 asteroidY_change = []
+asteroid_state = []
 
 for i in range(asteroid_count):
     asteroidImage.append(pygame.image.load('Assets/rock.png').convert_alpha())
     asteroidX.append(random.randint(0, 936))
     asteroidY.append(-30)
     asteroidY_change.append(random.uniform(.3, .8))
+    asteroid_state.append("ready")
 
 # Missiles
 missile_count = 10
@@ -56,6 +59,7 @@ ammoImage = pygame.image.load('Assets/bullet.png').convert_alpha()
 ammoX = random.randint(0, 968)
 ammoY = -40
 ammoY_change = random.uniform(.2, .6)
+ammo_state = "waiting"
 
 # HP Icon (Player Lives)
 heart_count = 3
@@ -73,9 +77,14 @@ ammo_text_image = ammo_text_font.render('Ammo:', True, WHITE)
 font = pygame.font.Font('freesansbold.ttf', 16)
 ammo_count_text_font = pygame.font.Font('freesansbold.ttf', 16)
 
+# Explosion
+explosionImage = pygame.image.load('Assets/explosion.png').convert_alpha()
+explosionX = 0
+explosionY = 0
+
 
 # update missiles
-def update_missile_count(missile_count):
+def missile_init(missile_count):
     for i in range(missile_count):
         missileImage.append(pygame.image.load(
             'Assets/missile.png').convert_alpha())
@@ -83,6 +92,13 @@ def update_missile_count(missile_count):
         missileY.append(playerY)
         missileY_change.append(-1)
         missile_state.append("ready")
+
+
+def missile_update():
+    for i in range(missile_count):
+        missileX[i] = playerX
+        missileY[i] = playerY
+        missile_state[i] = "ready"
 
 
 def player(x, y):
@@ -99,13 +115,14 @@ def asteroid(x, y, i):
 # updates asteroids
 
 
-def update_asteroids(asteroid_count, asteroidImage, asteroidX, asteroidY, asteroidY_change):
+def update_asteroids(asteroid_count, asteroidImage, asteroidX, asteroidY, asteroidY_change, asteroid_state):
     for i in range(asteroid_count):
         asteroidImage.append(pygame.image.load(
             'Assets/rock.png').convert_alpha())
         asteroidX.append(random.randint(0, 936))
         asteroidY.append(-30)
         asteroidY_change.append(random.uniform(.3, .8))
+        asteroid_state.append("ready")
 
 # fires missile from front of ship
 
@@ -135,17 +152,29 @@ def ammo_text():
     screen.blit(ammo_text_image, (906, 40))
 
 
-def ammo_count_text(available_missile):
+def ammo_count_text(available_missiles):
     ammo_count_text_image = ammo_count_text_font.render(
         str(available_missiles), True, WHITE)
     screen.blit(ammo_count_text_image, (967, 40))
+
+
+def isCollision(x1, y1, x2, y2):
+    distance = math.sqrt((math.pow(x1 - x2, 2)) + (math.pow(y1 - y2, 2)))
+    if distance < 32:
+        return True
+    else:
+        return False
+
+
+def explosion(x, y):
+    screen.blit(explosionImage, (x, y))
 
 
 # Timer for spawning new asteroids
 time_limit = 4
 start_time = time.time()
 print(start_time)
-update_missile_count(missile_count)
+missile_init(missile_count)
 
 # Update player lives
 update_player_lives(heart_count)
@@ -196,39 +225,55 @@ while running:
     elapsed_time = time.time() - start_time
     print(time_limit - int(elapsed_time))
 
+    # Asteroids
     # Asteroid Logic
     if elapsed_time > time_limit:
         time_limit += 4
         if asteroid_count < 20:
             asteroid_count = asteroid_count + 1
             update_asteroids(asteroid_count, asteroidImage,
-                             asteroidX, asteroidY, asteroidY_change)
+                             asteroidX, asteroidY, asteroidY_change, asteroid_state)
 
     for i in range(asteroid_count):
         asteroidY[i] += asteroidY_change[i]
         if asteroidY[i] > 800:
             asteroidY[i] = -30
             asteroidX[i] = random.randint(0, 936)
+            asteroidY_change[i] = random.uniform(.3, .8)
+            asteroid_state[i] = "ready"
 
-        asteroid(asteroidX[i], asteroidY[i], i)
+        if asteroid_state[i] == "ready":
+            asteroid(asteroidX[i], asteroidY[i], i)
 
-    # Missile Movement
+    # Missiles
     for i in range(missile_count):
         if missile_state[i] is "fire":
             fire_missile(missileX[i], missileY[i], i)
             missileY[i] += missileY_change[i]
+            # Missile/Asteroid Collision
+            for j in range(asteroid_count):
+                if isCollision(missileX[i], missileY[i], asteroidX[j], asteroidY[j]) and asteroid_state[j] == "ready":
+                    explosion(asteroidX[j], asteroidY[j])
+                    asteroid_state[j] = "blown up"
+                    missile_state[i] = "detonated"
 
         if missileY[i] < 0:
-            missile_state[i] = "used"
-            missileY[i] = playerX
+            missile_state[i] = "detonated"
+            missileY[i] = playerY
+            missileX[i] = playerX
 
-    # Player Movement
+    # Player
     playerX += playerX_change
     if playerX > 936:
         playerX = 936
     if playerX < 0:
         playerX = 0
 
+    # Collision
+
+    if isCollision(playerX, playerY, ammoX, ammoY):
+        missile_update()
+        available_missiles = 10
     player(playerX, playerY)
 
     pygame.display.update()
