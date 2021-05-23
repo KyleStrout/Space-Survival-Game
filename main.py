@@ -62,6 +62,7 @@ ammoY_change = random.uniform(.2, .6)
 ammo_state = "waiting"
 
 # HP Icon (Player Lives)
+current_lives = 3
 heart_count = 3
 heartImage = []
 heartX = []
@@ -81,6 +82,35 @@ ammo_count_text_font = pygame.font.Font('freesansbold.ttf', 16)
 explosionImage = pygame.image.load('Assets/explosion.png').convert_alpha()
 explosionX = 0
 explosionY = 0
+
+
+# Score Var
+score = 0
+
+# Score Literal Text
+score_text_font = pygame.font.Font('freesansbold.ttf', 19)
+score_text_image = score_text_font.render('Score:', True, WHITE)
+
+
+# Alien Space Ships
+alienImage = pygame.image.load('Assets/ufo.png').convert_alpha()
+alienX = random.randint(0, 936)
+alienY = -64
+alienX_change = 0
+alienY_change = random.uniform(.4, .85)
+alien_state = "waiting"
+
+# Stats
+asteroids_destroyed = 0
+aliens_destroyed = 0
+time_survived = 0
+
+
+# Hearts (Spawning)
+# TODO
+
+# Powerups
+# TODO
 
 
 # update missiles
@@ -115,14 +145,13 @@ def asteroid(x, y, i):
 # updates asteroids
 
 
-def update_asteroids(asteroid_count, asteroidImage, asteroidX, asteroidY, asteroidY_change, asteroid_state):
-    for i in range(asteroid_count):
-        asteroidImage.append(pygame.image.load(
-            'Assets/rock.png').convert_alpha())
-        asteroidX.append(random.randint(0, 936))
-        asteroidY.append(-30)
-        asteroidY_change.append(random.uniform(.3, .8))
-        asteroid_state.append("ready")
+def update_asteroids(asteroidImage, asteroidX, asteroidY, asteroidY_change, asteroid_state):
+    asteroidImage.append(pygame.image.load(
+        'Assets/rock.png').convert_alpha())
+    asteroidX.append(random.randint(0, 936))
+    asteroidY.append(-30)
+    asteroidY_change.append(random.uniform(.3, .8))
+    asteroid_state.append("ready")
 
 # fires missile from front of ship
 
@@ -139,7 +168,7 @@ def heart(x, y, i):
     screen.blit(heartImage[i], (x, y))
 
 
-def update_player_lives(heart_count):
+def init_player_lives(heart_count):
     for i in range(heart_count):
         heartImage.append(pygame.image.load(
             'Assets/heart.png').convert_alpha())
@@ -170,16 +199,38 @@ def explosion(x, y):
     screen.blit(explosionImage, (x, y))
 
 
+def score_text():
+    screen.blit(score_text_image, (420, 2))
+
+
+def score_count(score):
+    score_count_image = score_text_font.render(str(score), True, WHITE)
+    screen.blit(score_count_image, (490, 2))
+
+
+def alien(x, y):
+    screen.blit(alienImage, (x, y))
+
+
 start_time = time.time()
 # Timer for spawning new asteroids
 time_limit = 4
 missile_init(missile_count)
 
 # Update player lives
-update_player_lives(heart_count)
+init_player_lives(heart_count)
 
 # Ammo Timer
 ammo_time_limit = 15
+
+# Score Time Limit (How often score increases)
+score_timer = 1
+
+# Alien spawn timer
+alien_timer = 5
+
+# Explosion Timer
+explosion_timer = 2
 
 
 running = True
@@ -191,9 +242,9 @@ while running:
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
-                playerX_change = -1.2
+                playerX_change = -1
             if event.key == pygame.K_RIGHT:
-                playerX_change = 1.2
+                playerX_change = 1
             if event.key == pygame.K_SPACE:
                 for i in range(missile_count):
                     if missile_state[i] is "ready":
@@ -202,6 +253,7 @@ while running:
                         fire_missile(missileX[i], missileY[i], i)
                         available_missiles -= 1
                         break
+
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
                 playerX_change = 0
@@ -210,6 +262,7 @@ while running:
 
     ammo_text()
     ammo_count_text(available_missiles)
+    score_text()
 
     # heart display
     for i in range(heart_count):
@@ -218,6 +271,11 @@ while running:
         # if heart_state not ready (collision with asteroid) then dont display
 
     elapsed_time = time.time() - start_time
+
+    if elapsed_time > score_timer:
+        score += 10
+        score_timer += 1
+    score_count(score)
 
     if elapsed_time > ammo_time_limit:
         ammo_time_limit += 15
@@ -230,18 +288,17 @@ while running:
         ammoX = random.randint(0, 968)
         ammo_state = "waiting"
 
-    # Timer for spawning new asteroids
-    print(time_limit - int(elapsed_time))
-
     # Asteroids
-    # Asteroid Logic
+
+    # Asteroid Spawning
     if elapsed_time > time_limit:
         time_limit += 4
-        if asteroid_count < 20:
+        if asteroid_count < 25:
             asteroid_count = asteroid_count + 1
-            update_asteroids(asteroid_count, asteroidImage,
+            update_asteroids(asteroidImage,
                              asteroidX, asteroidY, asteroidY_change, asteroid_state)
 
+    # Asteroid Resetting
     for i in range(asteroid_count):
         asteroidY[i] += asteroidY_change[i]
         if asteroidY[i] > 800:
@@ -252,23 +309,58 @@ while running:
 
         if asteroid_state[i] == "ready":
             asteroid(asteroidX[i], asteroidY[i], i)
+            # Asteroid/Player Collision
+            if isCollision(asteroidX[i], asteroidY[i], playerX, playerY):
+                asteroid_state[i] = "blown up"
+                if heart_state[0] is "ready":
+                    heart_state[0] = "used"
+                elif heart_state[1] is "ready":
+                    heart_state[1] = "used"
+                elif heart_state[2] is "ready":
+                    heart_state[2] = "used"
+                if heart_state[0] is not "ready" and heart_state[1] is not "ready" and heart_state[2] is not "ready":
+                    running = False
 
     # Missiles
     for i in range(missile_count):
         if missile_state[i] is "fire":
             fire_missile(missileX[i], missileY[i], i)
             missileY[i] += missileY_change[i]
+            # Alien/Missile Collision
+            if isCollision(missileX[i], missileY[i], alienX, alienY):
+                explosion(alienX, alienY)
+                alien_state = "waiting"
+                alienX = random.randint(0, 936)
+                alienY = -64
+                alienY_change = random.uniform(.4, .85)
+                missile_state[i] = "detonated"
+                score += 500
             # Missile/Asteroid Collision
             for j in range(asteroid_count):
                 if isCollision(missileX[i], missileY[i], asteroidX[j], asteroidY[j]) and asteroid_state[j] == "ready":
                     explosion(asteroidX[j], asteroidY[j])
                     asteroid_state[j] = "blown up"
                     missile_state[i] = "detonated"
+                    score += 20
 
         if missileY[i] < 0:
             missile_state[i] = "detonated"
             missileY[i] = playerY
             missileX[i] = playerX
+
+    # Alien
+    if elapsed_time > alien_timer and alien_state is "waiting":
+        alien_state = "spawning"
+        alien_timer += 5
+    if alien_state is "spawning":
+        alienX += alienX_change
+        alienY += alienY_change
+        alien(alienX, alienY)
+    if alienY > 800:
+        alien_state = "waiting"
+        alienX = random.randint(0, 936)
+        alienY = -64
+        alienY_change = random.uniform(.4, .85)
 
     # Player
     playerX += playerX_change
@@ -277,11 +369,12 @@ while running:
     if playerX < 0:
         playerX = 0
 
-    # Collision
-
+    # Player Picking Up Ammo
     if isCollision(playerX, playerY, ammoX, ammoY):
         missile_update()
         available_missiles = 10
+        ammo_state = "waiting"
+
     player(playerX, playerY)
 
     pygame.display.update()
