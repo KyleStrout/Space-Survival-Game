@@ -143,7 +143,7 @@ def gameLoop():
         asteroid_state.append("ready")
 
     # Missiles
-    missile_count = 10
+    missile_count = 20
     available_missiles = missile_count
     missileImage = []
     missileX = []
@@ -420,7 +420,7 @@ def gameLoop():
         # Asteroid Spawning
         if elapsed_time > time_limit:
             time_limit += 4
-            if asteroid_count < 25:
+            if asteroid_count < 35:
                 asteroid_count = asteroid_count + 1
                 update_asteroids(asteroidImage,
                                  asteroidX, asteroidY, asteroidY_change, asteroid_state)
@@ -490,6 +490,19 @@ def gameLoop():
             alienX = random.randint(0, 936)
             alienY = -64
             alienY_change = random.uniform(.4, .6)
+        if isCollision(playerX, playerY, alienX, alienY):
+            alien_state = "waiting"
+            alienX = random.randint(0, 936)
+            alienY = -64
+            alienY_change = random.uniform(.4, .6)
+            if heart_state[0] is "ready":
+                heart_state[0] = "used"
+            elif heart_state[1] is "ready":
+                heart_state[1] = "used"
+            elif heart_state[2] is "ready":
+                heart_state[2] = "used"
+            if heart_state[0] is not "ready" and heart_state[1] is not "ready" and heart_state[2] is not "ready":
+                gameOver = True
 
         # Ammo spawning, resetting
         if elapsed_time > ammo_time_limit:
@@ -507,8 +520,10 @@ def gameLoop():
         if isCollision(playerX, playerY, ammoX, ammoY):
             if ammo_state is "ready":
                 missile_update()
-                available_missiles = 10
+                available_missiles = 20
                 ammo_state = "waiting"
+                ammoY = -40
+                ammoX = random.randint(0, 968)
 
         # Heart spawning, resetting
         if elapsed_time > heart_spawn_timer:
