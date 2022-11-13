@@ -14,3 +14,6 @@ Player tries to survive as long as possible against obstacles.
 
 ![image](https://user-images.githubusercontent.com/62024550/201507681-15b13fcd-e05b-49a2-acdb-d33571bfa4c8.png)
 
+## How to Play
+- Download the files
+- Run main.py
