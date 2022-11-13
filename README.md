@@ -6,6 +6,10 @@ Player tries to survive as long as possible against obstacles.
 - Collect Ammo
 - Get the highest score possible, bonus for shooting aliens
 
+## How to Play
+- Download the files
+- Run main.py
+
 ## Pictures
 
 ![image](https://user-images.githubusercontent.com/62024550/201507689-0bcea805-04ac-47be-a49b-74a6ea10e79d.png)
@@ -14,6 +18,4 @@ Player tries to survive as long as possible against obstacles.
 
 ![image](https://user-images.githubusercontent.com/62024550/201507681-15b13fcd-e05b-49a2-acdb-d33571bfa4c8.png)
 
-## How to Play
-- Download the files
-- Run main.py
+
